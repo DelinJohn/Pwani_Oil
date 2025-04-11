@@ -8,9 +8,6 @@ import datetime
 from typing_extensions import  TypedDict
 from pydantic import  Field
 from typing import List
-import json
-from tenacity import retry, stop_after_attempt, wait_exponential
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.messages import HumanMessage, SystemMessage
 import os
 from langchain.chat_models import init_chat_model
@@ -19,14 +16,15 @@ load_dotenv()
 
 
 
-key=os.environ.get("GROQ_API_KEY")
-model_provider=os.environ.get('GROQ_model_provider')
-model_name=os.environ.get('GROQ_model')
+key=st.secrets["GROQ_API_KEY"]
+model_provider=st.secrets['GROQ_model_provider']
+model_name=st.secrets['GROQ_model']
+perplexity_key=st.secrets['perp_api_key']
 
 
 ###########################################################
 
-@retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10))
+
 def model_type(model_name,key,model_provider):
 
     """This fucntion is responsible for selection of the llm"""
@@ -76,7 +74,7 @@ def get_companies(prompt):
 ]
 
 
-    client = OpenAI(api_key="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", base_url="https://api.perplexity.ai")
+    client = OpenAI(api_key=perplexity_key, base_url="https://api.perplexity.ai")
 
     # chat completion without streaming
     response = client.chat.completions.create(
