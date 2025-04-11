@@ -1,9 +1,7 @@
 langchain_groq
 langchain_openai
 langchain
-dotenv
 tenacity
 langgraph
-langchain-hyperbrowser
+langchain
 tinydb
-os
