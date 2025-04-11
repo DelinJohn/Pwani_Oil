@@ -1,7 +1,8 @@
-langchain_groq
-langchain_openai
-langchain
-tenacity
-langgraph
-langchain
+streamlit
+openai
+python-dotenv
 tinydb
+langchain
+langchain-core
+pydantic
+typing_extensions

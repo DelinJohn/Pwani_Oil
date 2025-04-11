@@ -11,8 +11,6 @@ from typing import List
 from langchain_core.messages import HumanMessage, SystemMessage
 import os
 from langchain.chat_models import init_chat_model
-from dotenv import load_dotenv
-load_dotenv()
 
 
 
