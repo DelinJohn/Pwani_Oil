@@ -264,15 +264,12 @@ with st.sidebar:
             
             age_range = st.slider("Age Range", 15, 65, (20, 30))
             gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", "No Preference"])
-            income = st.selectbox("Income", 
-                ("Professional", 
-                "Casual", 
-                "Inspirational", 
-                "Authoritative", 
-                "Friendly", 
-                "Energetic", 
-                "Persuasive")
-                )
+            income = st.selectbox('Income Level',
+                               ('Low (e.g, <$30k)',
+                                'Middle (e.g., $30k-$75k)',
+                                'High (e.g., $75k-$150k)',
+                                'Very High (e.g.,>$150k)',
+                                'No Preference'))
             region = st.selectbox("Region",
                                 ('Nairobi',
                                 'Central', 
