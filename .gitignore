@@ -1,6 +1,6 @@
 .env
 .ipynb
-data_from_text.ipynb
+test_app.ipynb
 demographics_age_trend_updater.py
 pwani.pdf
 pwani.xlsx
@@ -8,3 +8,4 @@ SKU_Maps.xlsx
 test.ipynb
 .streamlit
 new_app.py
+main.log

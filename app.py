@@ -1,5 +1,9 @@
 # Imports & Setup
 from typing import List
+import logging
+logging.basicConfig(filename="app.log",level=logging.INFO,  # Set the logging level
+                    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+
 from typing_extensions import TypedDict
 from pydantic import Field
 from datetime import datetime
@@ -15,9 +19,9 @@ import os
 
 
 # API keys and model configs
-key = st.secrets.get("GROQ_API_KEY")
-model_provider = st.secrets.get("GROQ_model_provider")
-model_name = st.secrets.get("GROQ_model")
+key = st.secrets.get("OPENAI_API_KEY")
+model_provider = st.secrets.get("GPT_model_provider")
+model_name = st.secrets.get("GPT_model")
 perplexity_key = st.secrets.get("perp_api_key")
 
 # Initialize LLM
@@ -57,6 +61,7 @@ def get_companies(prompt: str) -> str:
     ]
     client = OpenAI(api_key=perplexity_key, base_url="https://api.perplexity.ai")
     response = client.chat.completions.create(model="sonar", messages=messages)
+    logging.info(f"Response: {response.choices[0].message.content}")
     return response.choices[0].message.content
 
 # Save structured competitor data
@@ -116,79 +121,89 @@ def product_data_fetcher(brand, category):
 @st.cache_data
 def demographics_fetcher(gender, region, urban_or_rural):
     result = TinyDB("demographics.json").table("demographics").all()[-1]
-    gender_data = [{g: result[g]} for g in gender] if gender != "No Preference" else ""
+    gender_data = [{g: result[g]} for g in gender] if gender != ["No Preference"] else ""
     locality_data = {urban_or_rural: result[urban_or_rural]} if urban_or_rural != "No Preference" else ""
-    location_data = {region: result[region]}
+    location_data = {region: result[region]} if region != "No Preference" else "Kenya"
+    logging.info(f"Dmographics_data: Location data{location_data}, Gender data{gender_data}, locality data{locality_data}")
+
     return location_data, gender_data, locality_data
 
 # Final LLM invocation
-@st.cache_data(show_spinner="Generating campaign...")
-def final_llm(product, campaign_type, tone, content_type, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku):
+
+def final_llm(product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
     product_details, competitors = product_data_fetcher(product, category)
     competitor_list = competitor_data_collector(product, competitors, category)
     location_data, gender_data, locality_data = demographics_fetcher(gender, region, urban_or_rural)
 
     messages = [
     SystemMessage(f"""
-ROLE: You are a world-class, highly creative advertising strategist known for **groundbreaking** and **locally resonant** campaigns.
+ROLE: 
+    You are a **top-tier advertising strategist** specializing in **original, hyper-local campaigns**.
 
-OBJECTIVE: Design a high-impact **{campaign_type}** campaign for the brand **Pwani**, and the product **{product}, {category}, {sku}**. If the SKU is specifically referenced, tailor your message accordingly. The campaign is to be delivered to**{channel}** customers on **{platform}**.
+OBJECTIVE: 
+    Design a standout **{campaign_type}** campaign for **Pwani** — promoting **{product}, {category}, {sku}**.
+    The campaign will target **{channel}** customers via **{platform}**.
 
-TONE & STYLE: {tone}  
-CAMPAIGN CATEGORY: {campaign_category}  
-OUTPUT FORMAT: {content_type}
+TONE & STYLE: 
+    
 
-CONTEXT:
-You will be given:
-- `product_details`: key attributes of the product  
-- `competitor_list`: current advertising strategies used by competitors  
-- `target_audience`: includes:
-    - Region: {region}
-    - Gender: {gender}
-    - Age Range: {age_range}
-    - Income Level: {income}
-    - Demographics from location, gender, and locality breakdowns
+CAMPAIGN CATEGORY: 
+    {campaign_category}
 
-MISSION:
-1. Craft a **brilliant campaign message between 20 and 30 words**.
-2. Add a **rationale (max 20 words)** explaining why your idea **leapfrogs competitors** through originality and deep audience resonance.
-3. Your campaign must reflect:
-    - **Fresh, unexpected creativity** (no clichés, no buzzwords)
-    - **Deep cultural insight** (use language, tone, or hashtags that truly reflect the people of {region})
-    - **Emotional or social triggers** relevant to this group (not generic product selling points)
-    - **Better storytelling or symbolism** than competitors — even if it's a simple hashtag or callout.
-    - **Mention why this SKU is better**
-    - **Adhere to these instructions {instructions}
+CONTEXT:  
+    You will receive from the User:
+    - `product_details`: key benefits, unique selling points, and emotional anchors  
+    - `competitor_list`: current ad formats and brand messages from competitors  
+    - `target_audience`:  
+        - Region: {region}  
+        - Gender: {gender}  
+        - Age Range: {age_range}  
+        - Income Level: {income}  
+        - Demographics: regional, gender-specific, and locality insights
 
-MUST-HAVES:
-- Do **not** exceed 30 words for the campaign message.
-- Do **not** exceed 20 words for the competitive rationale.
-- Do **not** copy competitor formats. This must feel **unique**.
-- Do **not** generalize. Go for bold, memorable, local, or clever.
-- Make sure the type of data you are creating meets the standard and treding optimaization of {platform}.
+IMPORTANT MUST-HAVES:
+    - **Follow briefing instructions**: {instructions}
+    - **Output should be of Type:**{content_type}**  and the language should be:**{language}** of a **{tone}** focuced on {campaign_category}.
+    - **Platform-optimized**: Aligned with what’s trending and effective on **{platform}**.
+    - **Cultural relevance**: Use local references, humor, or trends that resonate with the target audience.
+    - **Unique selling proposition**: Highlight what makes Pwani’s product different from competitors.
+    - **Call to action**: Encourage immediate engagement or purchase.
+    - **Brand voice**: Align with Pwani’s brand identity and values.
+    - **Avoid jargon**: Use clear, relatable language that resonates with the target audience.
 
-Take bold creative risks. This campaign should feel like it was **born in the streets of {region}**, not in a boardroom.
+OUTPUT FORMAT:
+    - **{content_type}**
+        Your content Here
 
+    **Message**:
+        Your message Here
+
+    **Rationale**:  
+        Your rationale Here 
 """),
-    HumanMessage(f"""
+
+HumanMessage(f"""
 product_details = {product_details}  
 competitor_list = {competitor_list}  
+
 target_audience = {{
-    'region': '{region}',
-    'gender': '{gender}',
-    'age_range': '{age_range}',
-    'income_level': '{income}',
-    'demographics': {{
-        'region_data': {location_data},
-        'gender_data': {gender_data},
-        'locality_data': {locality_data}
+    "region": "{region}",
+    "gender": "{gender}",
+    "age_range": "{age_range}",
+    "income_level": "{income}",
+    "demographics": {{
+        "region_data": {location_data},
+        "gender_data": {gender_data},
+        "locality_data": {locality_data}
     }}
 }}
 """)
 ]
 
     result = llm.invoke(messages)
-    return result.content.split("</think>")[-1]
+    logging.info(f"LLM Response: {result.content}")
+    logging.info(f"LLM:Prompt: {messages}")
+    return result.content
 
 # UI Starts Here
 products_with_category={
@@ -235,19 +250,26 @@ with st.sidebar:
             channel = st.selectbox("Channel", list(channels))
             platform = st.selectbox("Platform", channels[channel])
             campaign_category = st.selectbox("Campaign Category",                                   
-                ("Awareness Campaign", 
-                "Engagement Campaign", 
-                "Conversion Campaign",
-                "Retention Campaign", 
-                "Product launch", 
-                "Seasonal Promotion")
+                (
+   "Awareness",
+   "Engagement",
+   "Conversion",
+   "Retention",
+   "Launch",
+   "Seasonal / Tactical"
+)
                 )
-            campaign_type = st.selectbox("Campaign Type", 
-                ("Brand Awareness", 
-                "Educational", 
-                "Influencer/Partnership", 
-                "Social Media Awareness", 
-                "PR and Media Coverage")
+            campaign_type = st.selectbox("Campaign Type", (
+                
+   "Influencer / Partnership",
+   "Educational / Thought Leadership",
+   "PR & Media Coverage",
+   "UGC / Community-Driven",
+   "Social Media Series / Challenge",
+   "Performance Ads",
+   "Email / Newsletter",
+   "Content Marketing"
+)
                 )
             tone = st.selectbox("Tone & Style", 
                 ("Professional", 
@@ -277,14 +299,19 @@ with st.sidebar:
                                 'Coast', 
                                 'Eastern', 
                                 'Western', 
-                                'Northeastern')
+                                'Northeastern',
+                                'No Preference')
                                 )
             urban_or_rural = st.selectbox("Urban/Rural", ["Urban", "Rural", "No Preference"])
+
+        with st.expander('Select the language',expanded=True):
+
+            language=st.selectbox('Language',('English','Local language','English + Local Language'))    
     
 # Main Action
 instructions = st.text_input("Enter additional instructions")
 if st.button("Generate Content"):
     if all([product, campaign_category, campaign_type, tone, content_type, instructions, age_range, gender, income, region, urban_or_rural, channel, platform]):
-        st.write(final_llm(product, campaign_type, tone, content_type, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku))
+        st.write(final_llm(product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language))
     else:
         st.warning("Please complete all inputs.")

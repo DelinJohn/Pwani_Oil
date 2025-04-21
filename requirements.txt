@@ -8,3 +8,4 @@ pydantic
 typing_extensions
 langchain_openai
 langchain_groq
+logging
