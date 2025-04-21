@@ -244,9 +244,8 @@ channels={
 
 # Sidebar Inputs
 with st.sidebar:
-    with st.container():
-        col1, col2 = st.columns(2)
-        with col1.expander("Campaign Definition", expanded=True):
+    
+    with st.expander("Campaign Definition", expanded=True):
         
             product = st.selectbox("Brand", list(products_with_category))
             category = st.selectbox("Category", list(products_with_category[product]))
@@ -287,7 +286,7 @@ with st.sidebar:
                 )
             
             content_type = st.selectbox("Content Type", ["Hashtag", "Script"])
-        with col2.expander("Target Market", expanded=True):
+    with st.expander("Target Market", expanded=True):
             
             age_range = st.slider("Age Range", 15, 65, (20, 30))
             gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", "No Preference"])
@@ -309,7 +308,7 @@ with st.sidebar:
                                 )
             urban_or_rural = st.selectbox("Urban/Rural", ["Urban", "Rural", "No Preference"])
 
-        with st.expander('Select the language',expanded=True):
+    with st.expander('Select the language',expanded=True):
 
             language=st.selectbox('Language',('English','Local language','English + Local Language'))    
     
