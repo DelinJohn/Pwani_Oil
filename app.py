@@ -172,14 +172,14 @@ IMPORTANT MUST-HAVES:
     - **Avoid jargon**: Use clear, relatable language that resonates with the target audience.
 
 OUTPUT FORMAT:
-    - **{content_type}**
-        Your content Here
+    - **{content_type}** 
+        Your content Here (10-20 words): A catchy phrase or tagline that encapsulates the campaign's essence.
 
-    **Message**:
-        Your message Here
+    **Message**: ()
+        Your message Here (10-20 words): A brief description of the campaign's core message.
 
     **Rationale**:  
-        Your rationale Here 
+        Your rationale Here (10-20 words): A brief explanation of why this campaign will resonate with the target audience.
 """),
 
 HumanMessage(f"""
