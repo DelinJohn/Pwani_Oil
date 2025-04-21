@@ -3,7 +3,7 @@ from typing import List
 import logging
 logging.basicConfig(filename="app.log",level=logging.INFO,  # Set the logging level
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
+logging.disable()
 from typing_extensions import TypedDict
 from pydantic import Field
 from datetime import datetime
@@ -170,16 +170,21 @@ IMPORTANT MUST-HAVES:
     - **Call to action**: Encourage immediate engagement or purchase.
     - **Brand voice**: Align with Pwani’s brand identity and values.
     - **Avoid jargon**: Use clear, relatable language that resonates with the target audience.
+Important Instruction:
+    - **Output should be in 20-30 word Maximum.**
+    - **Use the following format for the output:**
 
-OUTPUT FORMAT:
-    - **{content_type}** 
-        Your content Here (10-20 words): A catchy phrase or tagline that encapsulates the campaign's essence.
 
-    **Message**: ()
-        Your message Here (10-20 words): A brief description of the campaign's core message.
 
-    **Rationale**:  
-        Your rationale Here (10-20 words): A brief explanation of why this campaign will resonate with the target audience.
+       ** OUTPUT FORMAT** :
+             **{content_type}** 
+                Your content Here 
+
+            **Message**:
+                Your message Here
+
+
+    - **Do not include any other information or context.**            
 """),
 
 HumanMessage(f"""
