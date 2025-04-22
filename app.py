@@ -173,18 +173,24 @@ IMPORTANT MUST-HAVES:
 Important Instruction:
     - **Output should be in 20-30 word Maximum.**
     - **Use the following format for the output:**
+    
 
 
 
-       ** OUTPUT FORMAT** :
-             **{content_type}** 
-                Your content Here 
 
-            **Message**:
-                Your message Here
+       Output Structure:(output should be in this language:{language}(if mentioned local and english it should have both the flavours))
 
+        **Header:**
 
-    - **Do not include any other information or context.**            
+                [Generate a catchy and impactful title related to the campaign and product.]
+
+        **Caption:**
+
+                [Generate a persuasive caption that highlights the product benefits, includes brand endorsement information, and emphasizes its relevance to the target audience.]
+
+        **{content_type}**
+
+                [If content_type={content_type} is hashtag, generate a set of multiple hashtags related to the campaign and product else provide only and advertising script for the campaign and product.]            
 """),
 
 HumanMessage(f"""
@@ -289,7 +295,7 @@ with st.sidebar:
     with st.expander("Target Market", expanded=True):
             
             age_range = st.slider("Age Range", 15, 65, (20, 30))
-            gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", "No Preference"])
+            gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", 'No Preference'])
             income = st.selectbox('Income Level',
                                ('Low (e.g, <$30k)',
                                 'Middle (e.g., $30k-$75k)',
@@ -310,7 +316,7 @@ with st.sidebar:
 
     with st.expander('Select the language',expanded=True):
 
-            language=st.selectbox('Language',('English','Local language','English + Local Language'))    
+            language=st.selectbox('Language',('English','Local language','English and Local Language'))    
     
 # Main Action
 instructions = st.text_input("Enter additional instructions")
