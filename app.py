@@ -173,7 +173,7 @@ IMPORTANT MUST-HAVES:
 Important Instruction:
     - **Output should be in 20-30 word Maximum.**
     - **Use the following format for the output:**
-    
+
 
 
 
@@ -190,7 +190,7 @@ Important Instruction:
 
         **{content_type}**
 
-                [If content_type={content_type} is hashtag, generate a set of multiple hashtags related to the campaign and product else provide only and advertising script for the campaign and product.]            
+                [If content_type={content_type} is hashtag, generate a set of multiple hashtags related to the campaign and product else provide only advertising script for the campaign and product no hashtags]            
 """),
 
 HumanMessage(f"""
