@@ -19,12 +19,26 @@ import os
 
 
 # API keys and model configs
-key = st.secrets.get("OPENAI_API_KEY")
-model_provider = st.secrets.get("GPT_model_provider")
-model_name = st.secrets.get("GPT_model")
-perplexity_key = st.secrets.get("perp_api_key")
+try:
+    # Fetching API keys and model configurations from Streamlit secrets
+    key = st.secrets.get("OPENAI_API_KEY")
+    model_provider = st.secrets.get("GPT_model_provider")
+    model_name = st.secrets.get("GPT_model")
+    perplexity_key = st.secrets.get("perp_api_key")
 
-# Initialize LLM
+    # Checking if any secret is None (not found in secrets)
+    if None in [key, model_provider, model_name, perplexity_key]:
+        raise ValueError("One or more secrets are missing or not set properly.")
+
+except KeyError as e:
+    st.error(f"KeyError: {e} - One or more secrets are missing.")
+except ValueError as e:
+    st.error(f"ValueError: {e}")
+except Exception as e:
+    st.error(f"An unexpected error occurred: {e}")
+
+
+
 @st.cache_resource(show_spinner=False)
 def load_llm():
     if not all([key, model_provider, model_name]):
@@ -107,7 +121,8 @@ def data_collector_json_getter(competitors, category, product):
 def competitor_data_collector(product, competitors, category):
     db = TinyDB("db.json").table("products")
     q = Query()
-    result = db.search((q.date == str(datetime.today().date())) & (q.name == product) & (q.category == category))
+    result = db.search((q.date == str(datetime.today().date())) & (q.Product == product) & (q.category == category))
+    logging.info(f"Competitor data from data base db.json{result}")
     return result if result else data_collector_json_getter(competitors, category, product)
 
 # Product info
@@ -115,13 +130,14 @@ def competitor_data_collector(product, competitors, category):
 def product_data_fetcher(brand, category):
     db = TinyDB("new_product.json").table("Product_details")
     results = db.search((Query().Brand == brand) & (Query().Category == category))
+    logging.info(f"Product data from data base new_product.json{results}")
     return results, results[0].get("Competition")
 
 # Demographics info
 @st.cache_data
 def demographics_fetcher(gender, region, urban_or_rural):
     result = TinyDB("demographics.json").table("demographics").all()[-1]
-    gender_data = [{g: result[g]} for g in gender] if gender != ["No Preference"] else ""
+    gender_data = [{g: result[g]} for g in gender] if gender != ["All Genders"] else {i:result[i] for i in ["Female", "Male", "Non_binary"]}
     locality_data = {urban_or_rural: result[urban_or_rural]} if urban_or_rural != "No Preference" else ""
     location_data = {region: result[region]} if region != "No Preference" else "Kenya"
     logging.info(f"Dmographics_data: Location data{location_data}, Gender data{gender_data}, locality data{locality_data}")
@@ -295,7 +311,7 @@ with st.sidebar:
     with st.expander("Target Market", expanded=True):
             
             age_range = st.slider("Age Range", 15, 65, (20, 30))
-            gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", 'No Preference'])
+            gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", 'All Genders'])
             income = st.selectbox('Income Level',
                                ('Low (e.g, <$30k)',
                                 'Middle (e.g., $30k-$75k)',
