@@ -146,7 +146,7 @@ def demographics_fetcher(gender, region, urban_or_rural):
 
 # Final LLM invocation
 
-def final_llm(product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
+def final_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
     product_details, competitors = product_data_fetcher(product, category)
     competitor_list = competitor_data_collector(product, competitors, category)
     location_data, gender_data, locality_data = demographics_fetcher(gender, region, urban_or_rural)
@@ -338,6 +338,6 @@ with st.sidebar:
 instructions = st.text_input("Enter additional instructions")
 if st.button("Generate Content"):
     if all([product, campaign_category, campaign_type, tone, content_type, instructions, age_range, gender, income, region, urban_or_rural, channel, platform]):
-        st.write(final_llm(product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language))
+        st.write(final_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language))
     else:
         st.warning("Please complete all inputs.")
