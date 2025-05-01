@@ -1,4 +1,6 @@
 # Imports & Setup
+import base64
+from io import BytesIO
 from typing import List
 import logging
 logging.basicConfig(filename="app.log",level=logging.INFO,  # Set the logging level
@@ -146,7 +148,7 @@ def demographics_fetcher(gender, region, urban_or_rural):
 
 # Final LLM invocation
 
-def final_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
+def Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,history=[]):
     product_details, competitors = product_data_fetcher(product, category)
     competitor_list = competitor_data_collector(product, competitors, category)
     location_data, gender_data, locality_data = demographics_fetcher(gender, region, urban_or_rural)
@@ -188,7 +190,9 @@ IMPORTANT MUST-HAVES:
     - **Avoid jargon**: Use clear, relatable language that resonates with the target audience.
 Important Instruction:
     - **Output should be in 20-30 word Maximum.**
+    - **This is the are the history of the converstion**: {history} if its empty ignore this else your response should be better and improved that the previous prompts.
     - **Use the following format for the output:**
+    
 
 
 
@@ -231,6 +235,89 @@ target_audience = {{
     logging.info(f"LLM Response: {result.content}")
     logging.info(f"LLM:Prompt: {messages}")
     return result.content
+
+
+def image_llm(uploaded_image,product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,history=[]):
+    product_details, competitors = product_data_fetcher(product, category)
+    competitor_list = competitor_data_collector(product, competitors, category)
+    location_data, gender_data, locality_data = demographics_fetcher(gender, region, urban_or_rural)
+
+    messages = [
+    SystemMessage(f"""
+ROLE: 
+    You are a **top-tier advertising strategist** specializing in **original, hyper-local campaigns**.
+
+OBJECTIVE: 
+    Design a standout prompt for image generation for a **{campaign_type}** campaign for **Pwani** — promoting **{product}, {category}, {sku}**.
+    The campaign will target **{channel}** customers via **{platform}**.
+
+TONE & STYLE: 
+    The tone should be **vibrant, health-conscious, warm, and culturally relevant** with a focus on **visual storytelling**. The style should be aligned with what’s trending and effective on **{platform}**, with a **clear emotional appeal** for health-conscious, modern consumers.
+
+CAMPAIGN CATEGORY: 
+    {campaign_category}
+
+CONTEXT:  
+    You will receive from the User as Human Message:
+    - `product_details`: key benefits, unique selling points, and emotional anchors  
+    - `competitor_list`: current ad formats and brand messages from competitors  
+    - `target_audience`:  
+        - Region: {region}  
+        - Gender: {gender}  
+        - Age Range: {age_range}  
+        - Income Level: {income}  
+        - Demographics: regional, gender-specific, and locality insights
+
+IMPORTANT MUST-HAVES:
+    - **It should have a detailed description of the background image that should be generated**. 
+    - **The image generation should focus on creating the **background** only**. The product image will be provided and should **remain unchanged** for any reason.
+    - **Platform-optimized**: Aligned with what’s trending and effective on **{platform}**.
+    - **The image should be accordint to the instructions:{instructions} and it should have the tone:{tone}*.
+    - **Cultural relevance**: Use local references, humor, or trends that resonate with the target audience.
+    - **Unique selling proposition**: Highlight what makes Pwani’s product different from competitors.
+
+    
+Important Instruction:
+    - **Output should be a very specific and clear prompt for image generation of the background and also make sure donot overwhelm the model it is better it the image is realistic considering all the above things**. The product image is already provided and should not be altered. Only the **background** of the image should be generated  
+    - **The prompt should also include this insturction that do not alter the given image in any way This should be very assertive**.   
+    - **This is the are the history of the prompts**: {history} if its empty ignore this else provide a different and if possible a better prompt.      
+"""),
+
+HumanMessage(f"""
+product_details = {product_details}  
+competitor_list = {competitor_list}  
+
+target_audience = {{
+    "region": "{region}",
+    "gender": "{gender}",
+    "age_range": "{age_range}",
+    "income_level": "{income}",
+    "demographics": {{
+        "region_data": {location_data},
+        "gender_data": {gender_data},
+        "locality_data": {locality_data}
+    }}
+}}
+""")
+]
+
+    prompt= llm.invoke(messages).content
+
+    client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+    img = client.images.edit(
+        model="gpt-image-1",  # This is an assumption. Check OpenAI documentation for correct model name
+        image=uploaded_image,
+        prompt=prompt,
+        size="1536x1024"
+    )
+
+    # Decoding base64 image data from OpenAI response
+    image_bytes = base64.b64decode(img.data[0].b64_json)
+    image_io = BytesIO(image_bytes)
+
+    return image_io,prompt   
+
+
 
 # UI Starts Here
 products_with_category={
@@ -332,12 +419,75 @@ with st.sidebar:
 
     with st.expander('Select the language',expanded=True):
 
-            language=st.selectbox('Language',('English','Local language','English and Local Language'))    
+            language=st.selectbox('Language',('English','Local language','English and Local Language'))  
+    with st.expander('Select the input type') :
+         input_type=st.selectbox('Output type',('Text','Image','Image and Text'))
+         if input_type!="Text":
+            uploaded_image = st.file_uploader("Choose an image or type png", type=["png"])
+            if not uploaded_image:
+                st.warning("Please upload an image.")      
     
 # Main Action
-instructions = st.text_input("Enter additional instructions")
+instructions = st.text_input("Campaign Input")
+
+
+def text_generator(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
+    history=[]
+    for i in range(3):
+        result=Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,history)
+        history.append(result)
+    return history
+def image_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
+    history=[]
+    images=[]
+    for i in range(3):
+        result,prompt=image_llm(uploaded_image,product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,history)
+        history.append(prompt)
+        images.append(result)
+    return images
+def image_text_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
+    text_history=[]
+    prompt_history=[]
+    images=[]
+    for i in range(3):
+        text_result=Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,text_history)
+        image_result,prompt=image_llm(uploaded_image,product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,prompt_history)
+        text_history.append(text_result)
+        prompt_history.append(prompt)
+        images.append(image_result)
+    return text_history,images
+
+
+
+
 if st.button("Generate Content"):
     if all([product, campaign_category, campaign_type, tone, content_type, instructions, age_range, gender, income, region, urban_or_rural, channel, platform]):
-        st.write(final_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language))
-    else:
+        if input_type=="Text":
+            result=text_generator(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)
+            st.write(result[1])
+            st.write(result[0])
+            st.write(result[2])
+
+        if input_type=="Image":
+            if uploaded_image:
+                result=image_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)    
+                st.image(result[1])
+                st.image(result[0])
+                st.image(result[2])
+                
+        if input_type=="Image and Text":
+            if uploaded_image:
+                result,image=image_text_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)       
+                st.write(result[0])
+                st.image(image[0])
+                
+                st.write(result[1])
+                st.image(image[1])
+                
+                st.write(result[2]) 
+                st.image(image[2])
+
+        else:
+            st.warning("Please upload an image.")
+    else:    
         st.warning("Please complete all inputs.")
