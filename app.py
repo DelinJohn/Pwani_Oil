@@ -5,7 +5,7 @@ from typing import List
 import logging
 logging.basicConfig(filename="app.log",level=logging.INFO,  # Set the logging level
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logging.disable()
+
 from typing_extensions import TypedDict
 from pydantic import Field
 from datetime import datetime
@@ -163,7 +163,7 @@ OBJECTIVE:
     The campaign will target **{channel}** customers via **{platform}**.
 
 TONE & STYLE: 
-    
+    [Define the tone here - e.g., energetic, authentic, humorous, etc.]
 
 CAMPAIGN CATEGORY: 
     {campaign_category}
@@ -180,37 +180,28 @@ CONTEXT:
         - Demographics: regional, gender-specific, and locality insights
 
 IMPORTANT MUST-HAVES:
-    - **Follow briefing instructions**: {instructions}
-    - **Output should be of Type:**{content_type}**  and the language should be:**{language}** of a **{tone}** focuced on {campaign_category}.
+    - **Follow briefing instructions to a point **: {instructions}()
+    - **Output should be of Type:**{content_type} and the language should be **{language}** of a **{tone}** focused on {campaign_category}.
     - **Platform-optimized**: Aligned with what’s trending and effective on **{platform}**.
     - **Cultural relevance**: Use local references, humor, or trends that resonate with the target audience.
     - **Unique selling proposition**: Highlight what makes Pwani’s product different from competitors.
     - **Call to action**: Encourage immediate engagement or purchase.
     - **Brand voice**: Align with Pwani’s brand identity and values.
     - **Avoid jargon**: Use clear, relatable language that resonates with the target audience.
+
 Important Instruction:
     - **Output should be in 20-30 word Maximum.**
-    - **This is the are the history of the converstion**: {history} if its empty ignore this else your response should be better and improved that the previous prompts.
-    - **Use the following format for the output:**
-    
+    - **This is the history of the conversation**: {history} (if it's empty, ignore this part; else your response should differ and improve based on the past campaign insights).
 
-
-
-
-
-       Output Structure:(output should be in this language:{language}(if mentioned local and english it should have both the flavours))
-
+    - **Output should follow this format:**
         **Header:**
-
                 [Generate a catchy and impactful title related to the campaign and product.]
 
         **Caption:**
-
                 [Generate a persuasive caption that highlights the product benefits, includes brand endorsement information, and emphasizes its relevance to the target audience.]
 
         **{content_type}**
-
-                [If content_type={content_type} is hashtag, generate a set of multiple hashtags related to the campaign and product else provide only advertising script for the campaign and product no hashtags]            
+                [If content_type = "hashtag", generate relevant hashtags for the campaign and product; otherwise, provide an advertising script.]           
 """),
 
 HumanMessage(f"""
@@ -248,39 +239,37 @@ ROLE:
     You are a **top-tier advertising strategist** specializing in **original, hyper-local campaigns**.
 
 OBJECTIVE: 
-    Design a standout prompt for image generation for a **{campaign_type}** campaign for **Pwani** — promoting **{product}, {category}, {sku}**.
+    Create a detailed **image generation prompt** for the background of a **{campaign_type}** campaign for **Pwani** — promoting **{product}, {category}, {sku}**. 
     The campaign will target **{channel}** customers via **{platform}**.
 
 TONE & STYLE: 
-    The tone should be **vibrant, health-conscious, warm, and culturally relevant** with a focus on **visual storytelling**. The style should be aligned with what’s trending and effective on **{platform}**, with a **clear emotional appeal** for health-conscious, modern consumers.
+
+    The style should align with what’s trending and effective on **{platform}**, featuring a **clear emotional appeal** and the output have tone of {tone}.
 
 CAMPAIGN CATEGORY: 
     {campaign_category}
 
 CONTEXT:  
-    You will receive from the User as Human Message:
-    - `product_details`: key benefits, unique selling points, and emotional anchors  
-    - `competitor_list`: current ad formats and brand messages from competitors  
+    You will receive the following from the User as a **Human Message**:
+    - `product_details`: Key benefits, unique selling points, and emotional anchors
+    - `competitor_list`: Current ad formats and brand messages from competitors
     - `target_audience`:  
         - Region: {region}  
         - Gender: {gender}  
         - Age Range: {age_range}  
         - Income Level: {income}  
-        - Demographics: regional, gender-specific, and locality insights
+        - Demographics: Regional, gender-specific, and locality insights
 
 IMPORTANT MUST-HAVES:
-    - **It should have a detailed description of the background image that should be generated**. 
-    - **The image generation should focus on creating the **background** only**. The product image will be provided and should **remain unchanged** for any reason.
-    - **Platform-optimized**: Aligned with what’s trending and effective on **{platform}**.
-    - **The image should be accordint to the instructions:{instructions} and it should have the tone:{tone}*.
-    - **Cultural relevance**: Use local references, humor, or trends that resonate with the target audience.
-    - **Unique selling proposition**: Highlight what makes Pwani’s product different from competitors.
+    - **Platform-optimized**: Align the background image with what’s currently trending and effective on **{platform}**.
+    - **Cultural relevance**: Incorporate local references, humor, or trends that strongly resonate with the target audience and also product.
+    - **Unique selling proposition**: The image should subtly highlight what makes Pwani’s product stand out from competitors.
 
-    
 Important Instruction:
-    - **Output should be a very specific and clear prompt for image generation of the background and also make sure donot overwhelm the model it is better it the image is realistic considering all the above things**. The product image is already provided and should not be altered. Only the **background** of the image should be generated  
-    - **The prompt should also include this insturction that do not alter the given image in any way This should be very assertive**.   
-    - **This is the are the history of the prompts**: {history} if its empty ignore this else provide a different and if possible a better prompt.      
+    - **The output must be a specific, clear and simple it should not overwhelm the image model not by giving fine details** . 
+    - The product image is already provided, and **it must not be altered in any way** — this instruction should be **assertive** in the prompt.
+    - The image should very closely adhere to all the things mentioned in the instruction:{instructions} even if overwrites everything mentioned in this entire prompt.
+    - **This is the history of the prompts**: {history} — if it’s empty, ignore this else your response should differ and improve based on the past prompts.      
 """),
 
 HumanMessage(f"""
@@ -300,8 +289,10 @@ target_audience = {{
 }}
 """)
 ]
-
+    logging.info(f"Image LLM:Prompt: {messages}")
+    
     prompt= llm.invoke(messages).content
+    logging.info(f"Image LLM Response prompt: {prompt}")
 
     client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
     img = client.images.edit(
@@ -423,7 +414,7 @@ with st.sidebar:
     with st.expander('Select the input type') :
          input_type=st.selectbox('Output type',('Text','Image','Image and Text'))
          if input_type!="Text":
-            uploaded_image = st.file_uploader("Choose an image or type png", type=["png"])
+            uploaded_image = st.file_uploader(f"Choose an image of type png of {product} , {category}", type=["png"])
             if not uploaded_image:
                 st.warning("Please upload an image.")      
     
