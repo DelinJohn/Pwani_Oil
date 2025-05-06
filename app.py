@@ -419,6 +419,28 @@ with st.sidebar:
                 st.warning("Please upload an image.")      
     
 # Main Action
+with st.expander('Instructions for giving the campaign input'):
+    st.write(
+        """1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+
+2. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+3. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+
+4. Nisi ut aliquip ex ea commodo consequat.
+
+5. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore.
+
+6. Eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.
+
+7. Sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+8. Curabitur pretium tincidunt lacus. Nulla gravida orci a odio.
+
+9. Nullam varius, turpis et commodo pharetra, est eros bibendum elit.
+
+10. Etiam cursus leo vel metus. Nulla facilisi."""
+    )
 instructions = st.text_input("Campaign Input")
 
 
