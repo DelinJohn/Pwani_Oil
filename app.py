@@ -201,7 +201,7 @@ Important Instruction:
                 [Generate a persuasive caption that highlights the product benefits, includes brand endorsement information, and emphasizes its relevance to the target audience.]
 
         **{content_type}**
-                [If content_type = "hashtag", generate relevant hashtags for the campaign and product; otherwise, provide an advertising script.]           
+                [If content_type = "hashtag", generate relevant hashtags for the campaign and product; otherwise, provide an advertising script that can reach people don't provide hastags.]           
 """),
 
 HumanMessage(f"""
