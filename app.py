@@ -1,5 +1,6 @@
 # Imports & Setup
 import base64
+import sqlite3
 from io import BytesIO
 from typing import List
 import logging
@@ -93,6 +94,20 @@ def json_db_creator(data, product, category):
 
     structured_llm = llm.with_structured_output(ExtractSchema)
     result = structured_llm.invoke(data)
+
+    # db = TinyDB("db.json")
+    # ProductCategory = Query()
+    # result.update({"date": str(datetime.today().date()), "Product": product, "category": category})
+    # existing_record = db.search((ProductCategory.Product == product) & (ProductCategory.category == category))
+    # if existing_record:
+    #     # If the product and category exist, update the record
+    #     db.update(result, (ProductCategory.Product == product) & (ProductCategory.category == category))
+    #     print(f"Product '{product}' in category '{category}' updated.") 
+    # else:
+    #     # If the product and category don't exist, insert a new record
+    #     db.insert(result)
+    #     print(f"Product '{product}' in category '{category}' inserted.")    
+
     result.update({"date": str(datetime.today().date()), "Product": product, "category": category})
     TinyDB("db.json").table("products").insert(result)
 
@@ -268,7 +283,7 @@ IMPORTANT MUST-HAVES:
 Important Instruction:
     - **The output must be a specific, clear and simple it should not overwhelm the image model not by giving fine details** . 
     - The product image is already provided, and **it must not be altered in any way** — this instruction should be **assertive** in the prompt.
-    - The image should very closely adhere to all the things mentioned in the instruction:{instructions} even if overwrites everything mentioned in this entire prompt.
+    - The image should very closely adhere to all the things mentioned in the instruction:{instructions} and also use your creative ideas that can be used in the prompt that aligns with the context.
     - **This is the history of the prompts**: {history} — if it’s empty, ignore this else your response should differ and improve based on the past prompts.      
 """),
 
@@ -302,12 +317,14 @@ target_audience = {{
         size="1536x1024"
     )
 
-    # Decoding base64 image data from OpenAI response
+    
+
+    return img,prompt   
+
+def base64_to_image(img):
     image_bytes = base64.b64decode(img.data[0].b64_json)
     image_io = BytesIO(image_bytes)
-
-    return image_io,prompt   
-
+    return image_io
 
 
 # UI Starts Here
@@ -390,6 +407,9 @@ with st.sidebar:
             
             age_range = st.slider("Age Range", 15, 65, (20, 30))
             gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", 'All Genders'])
+            if ('All Genders' in gender) and len(gender)>1:
+                st.warning('Please Select either All Genders or combination of other options')
+                st.stop()
             income = st.selectbox('Income Level',
                                ('Low (e.g, <$30k)',
                                 'Middle (e.g., $30k-$75k)',
@@ -419,37 +439,77 @@ with st.sidebar:
                 st.warning("Please upload an image.")      
     
 # Main Action
-with st.expander('Instructions for giving the campaign input'):
+with st.expander('Recommended Guidelines for Getting the Best Campaign Creative'):
     st.write(
-        """1. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+        """🔍 **1. Focus on the Product’s Unique Features**  
+• Highlight the product’s key selling points.  
+• Examples:  
+    • “Highlight the smooth texture and rich foam of our luxury soap.”  
+    • “Showcase the compact, sleek design of our wireless earbuds.”  
+    • “Focus on the creamy, tropical vibe of our mango ice cream.”  
+⸻  
 
-2. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+🎨 **2. Set the Scene and Mood Clearly**  
+• Describe the environment or setting you envision.  
+• Examples:  
+    • “Fresh morning bathroom scene for a soap ad.”  
+    • “Techy, futuristic workspace for a gadget ad.”  
+    • “Beachside, summer vibe for a cold drink ad.”  
+⸻  
 
-3. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris.
+🎯 **3. Specify the Target Audience’s Lifestyle**  
+• Think about who you’re selling to and what resonates with them.  
+• Examples:  
+    • “Designed for busy professionals on the go.”  
+    • “Perfect for adventurous, outgoing Gen Z.”  
+    • “Ideal for health-conscious parents.”  
+⸻  
 
-4. Nisi ut aliquip ex ea commodo consequat.
+🖼️ **4. Use Strong Visual Cues**  
+• Mention specific colors, objects, or themes.  
+• Examples:  
+    • “Bright, tropical colors for a summer campaign.”  
+    • “Clean, minimalist design for premium electronics.”  
+    • “Natural, earthy tones for organic products.”  
+⸻  
 
-5. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore.
+📱 **5. Match the Creative to the Channel**  
+• Consider how the ad will look on the intended platform.  
+• Examples:  
+    • “Vertical, eye-catching for Instagram Stories.”  
+    • “Professional, polished for LinkedIn posts.”  
+    • “High-contrast, direct for WhatsApp promos.”  
+⸻  
 
-6. Eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident.
+💥 **6. Add Emotional Triggers (When Possible)**  
+• Play on emotions that drive action.  
+• Examples:  
+    • “Excitement for summer flavors.”  
+    • “Peace of mind for safety tech.”  
+    • “Luxury feel for premium products.”  
+⸻  
 
-7. Sunt in culpa qui officia deserunt mollit anim id est laborum.
+🛑 **7. Avoid Common Creative Pitfalls**  
+• ❌ Don’t just say “Make it look good” — be specific.  
+• ❌ Avoid generic words like “awesome” or “cool” without context.  
+• ❌ Don’t forget the product context (e.g., size, shape, use case).  
+⸻  
 
-8. Curabitur pretium tincidunt lacus. Nulla gravida orci a odio.
-
-9. Nullam varius, turpis et commodo pharetra, est eros bibendum elit.
-
-10. Etiam cursus leo vel metus. Nulla facilisi."""
+💡 **8. Examples for Inspiration (Clickable in UI)**  
+• “Show a young couple enjoying mango ice cream on a sunny beach.”  
+• “Feature a professional in a modern workspace using high-tech earbuds.”  
+• “Highlight the vibrant, bubbly foam of a luxury soap bar.”"""
     )
-instructions = st.text_input("Campaign Input")
+instructions = st.text_input("Please provide your campaign brief here")
 
-
+st.spinner("Generating your content")
 def text_generator(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
     history=[]
     for i in range(3):
         result=Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,history)
         history.append(result)
     return history
+st.spinner("Generating your content")
 def image_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
     history=[]
     images=[]
@@ -458,6 +518,7 @@ def image_generator(uploaded_image,product,content_type, campaign_type, tone, ca
         history.append(prompt)
         images.append(result)
     return images
+st.spinner("Generating your content")
 def image_text_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
     text_history=[]
     prompt_history=[]
@@ -473,34 +534,97 @@ def image_text_generator(uploaded_image,product,content_type, campaign_type, ton
 
 
 
-if st.button("Generate Content"):
+if st.button("Generate Campaign"):
     if all([product, campaign_category, campaign_type, tone, content_type, instructions, age_range, gender, income, region, urban_or_rural, channel, platform]):
         if input_type=="Text":
             result=text_generator(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)
             st.write(result[1])
             st.write(result[0])
             st.write(result[2])
+            now = datetime.now()
+            conn = sqlite3.connect("Output.db")
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO Text_output (
+                date, time, product, content_type, campaign_type, tone,
+                campaign_category, instructions, category, gender, age_range,
+                income, region, urban_or_rural, channel, platform, sku,
+                language, input_type, text_result_1, text_result_2, text_result_3
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                str(now.date()), str(now.time()),
+                product, content_type, campaign_type, tone, campaign_category,
+                instructions, category, str(gender), str(age_range), income, region,
+                urban_or_rural, channel, platform, sku, language, input_type,
+                result[0], result[1], result[2]
+            ))
+            conn.commit()
 
         if input_type=="Image":
             if uploaded_image:
                 result=image_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)    
-                st.image(result[1])
-                st.image(result[0])
-                st.image(result[2])
+                st.image(base64_to_image(result[1]))
+                st.image(base64_to_image(result[0]))
+                st.image(base64_to_image(result[2]))
+                now = datetime.now()
+                conn = sqlite3.connect("Output.db")
+                cursor = conn.cursor()
+                cursor.execute("""
+                    INSERT INTO image_output (
+                    date, time, product, content_type, campaign_type, tone,
+                    campaign_category, instructions, category, gender, age_range,
+                    income, region, urban_or_rural, channel, platform, sku,
+                    language, input_type,
+                    image_result_1, image_result_2, image_result_3
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                    str(now.date()), str(now.time()),
+                        product, content_type, campaign_type, tone, campaign_category,
+                        instructions, category, str(gender), str(age_range), income, region,
+                        urban_or_rural, channel, platform, sku, language, input_type,
+                        base64.b64decode(result[0].data[0].b64_json),
+                        base64.b64decode(result[1].data[0].b64_json),
+                        base64.b64decode(result[2].data[0].b64_json)
+                    ))
+                conn.commit()
                 
         if input_type=="Image and Text":
             if uploaded_image:
                 result,image=image_text_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)       
                 st.write(result[0])
-                st.image(image[0])
+                st.image(base64_to_image(image[0]))
                 
                 st.write(result[1])
-                st.image(image[1])
+                st.image(base64_to_image(image[1]))
                 
                 st.write(result[2]) 
-                st.image(image[2])
+                st.image(base64_to_image(image[2]))
+                conn = sqlite3.connect("Output.db")
+                cursor = conn.cursor()
+                now = datetime.now()
+                cursor.execute("""
+                    INSERT INTO image_and_text_output (
+                    date, time, product, content_type, campaign_type, tone, 
+                    campaign_category, instructions, category, gender, age_range, 
+                    income, region, urban_or_rural, channel, platform, sku, 
+                    language, input_type, 
+                    image_result_1, image_result_2, image_result_3,
+                    text_result_1, text_result_2, text_result_3
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                    str(now.date()), str(now.time()),
+                    product, content_type, campaign_type, tone, campaign_category,
+                    instructions, category, str(gender), str(age_range), income, region,
+                    urban_or_rural, channel, platform, sku, language, input_type,
+                    base64.b64decode(image[0].data[0].b64_json),
+                    base64.b64decode(image[1].data[0].b64_json),
+                    base64.b64decode(image[2].data[0].b64_json),
+                    result[0], result[1], result[2]
+                    ))
+                conn.commit()
+            
 
-        else:
-            st.warning("Please upload an image.")
+            else:
+                st.warning("Please upload an image.")
     else:    
         st.warning("Please complete all inputs.")
