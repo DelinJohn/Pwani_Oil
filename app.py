@@ -145,7 +145,7 @@ def competitor_data_collector(product, competitors, category):
 # Product info
 @st.cache_data
 def product_data_fetcher(brand, category):
-    db = TinyDB("new_product.json").table("Product_details")
+    db = TinyDB("product_database.json")
     results = db.search((Query().Brand == brand) & (Query().Category == category))
     logging.info(f"Product data from data base new_product.json{results}")
     return results, results[0].get("Competition")
@@ -165,7 +165,7 @@ def demographics_fetcher(gender, region, urban_or_rural):
 
 def Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,history=[]):
     product_details, competitors = product_data_fetcher(product, category)
-    competitor_list = competitor_data_collector(product, competitors, category)
+    # competitor_list = competitor_data_collector(product, competitors, category)
     location_data, gender_data, locality_data = demographics_fetcher(gender, region, urban_or_rural)
 
     messages = [
@@ -186,7 +186,7 @@ CAMPAIGN CATEGORY:
 CONTEXT:  
     You will receive from the User:
     - `product_details`: key benefits, unique selling points, and emotional anchors  
-    - `competitor_list`: current ad formats and brand messages from competitors  
+
     - `target_audience`:  
         - Region: {region}  
         - Gender: {gender}  
@@ -221,7 +221,7 @@ Important Instruction:
 
 HumanMessage(f"""
 product_details = {product_details}  
-competitor_list = {competitor_list}  
+
 
 target_audience = {{
     "region": "{region}",
@@ -245,7 +245,7 @@ target_audience = {{
 
 def image_llm(uploaded_image,product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,history=[]):
     product_details, competitors = product_data_fetcher(product, category)
-    competitor_list = competitor_data_collector(product, competitors, category)
+    # competitor_list = competitor_data_collector(product, competitors, category)
     location_data, gender_data, locality_data = demographics_fetcher(gender, region, urban_or_rural)
 
     messages = [
@@ -289,7 +289,6 @@ Important Instruction:
 
 HumanMessage(f"""
 product_details = {product_details}  
-competitor_list = {competitor_list}  
 
 target_audience = {{
     "region": "{region}",
@@ -366,6 +365,9 @@ with st.sidebar:
         
             product = st.selectbox("Brand", list(products_with_category))
             category = st.selectbox("Category", list(products_with_category[product]))
+            
+
+
             sku = st.selectbox("SKU", ["Select"] + products_with_category[product][category])
             sku = None if sku == "Select" else sku
             channel = st.selectbox("Channel", list(channels))
@@ -500,131 +502,145 @@ with st.expander('Recommended Guidelines for Getting the Best Campaign Creative'
 • “Feature a professional in a modern workspace using high-tech earbuds.”  
 • “Highlight the vibrant, bubbly foam of a luxury soap bar.”"""
     )
-instructions = st.text_input("Please provide your campaign brief here")
 
-st.spinner("Generating your content")
-def text_generator(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
-    history=[]
+result,competitors=product_data_fetcher(product, category)
+
+
+def result_null_finder(result):
+    a=[]
+    for i in result[0]:
+        if result[0][i]=="None":
+            a.append(i)
+    return a   
+null_values= result_null_finder(result)
+if null_values:
+    st.warning(f"These aspects {null_values} of this {product} ,{category} is missing ")
+    st.write(f"This may impact the quality and personalization of your campaign assets. The output may not fully reflect your brand's tone and style.")
+instructions = st.text_input("Please provide your campaign brief here")
+    
+
+def real_time_text_generator(product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language):
+    history = []
     for i in range(3):
-        result=Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,history)
+        result = Text_llm(product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language, history)
         history.append(result)
-    return history
-st.spinner("Generating your content")
-def image_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
-    history=[]
-    images=[]
+        if 'text_results' not in st.session_state:
+            st.session_state.text_results = []
+        st.session_state.text_results.append(result)  # Save the results in session state
+        st.write(result)  # Show the result immediately
+        
+
+def real_time_image_generator(uploaded_image, product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language):
+    history = []
+    images = []
     for i in range(3):
-        result,prompt=image_llm(uploaded_image,product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,history)
+        result, prompt = image_llm(uploaded_image, product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, history)
         history.append(prompt)
         images.append(result)
-    return images
-st.spinner("Generating your content")
-def image_text_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language):
-    text_history=[]
-    prompt_history=[]
-    images=[]
+        if 'image_results' not in st.session_state:
+            st.session_state.image_results = []
+        st.session_state.image_results.append(result)  # Save the images in session state
+        st.image(base64_to_image(result))  # Display the image immediately
+        
+
+def real_time_image_text_generator(uploaded_image, product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language):
+    text_history = []
+    prompt_history = []
+    images = []
     for i in range(3):
-        text_result=Text_llm(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language,text_history)
-        image_result,prompt=image_llm(uploaded_image,product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,prompt_history)
+        text_result = Text_llm(product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language, text_history)
+        image_result, prompt = image_llm(uploaded_image, product, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, prompt_history)
         text_history.append(text_result)
         prompt_history.append(prompt)
         images.append(image_result)
-    return text_history,images
-
-
-
+        if 'text_results' not in st.session_state:
+            st.session_state.text_results = []
+        if 'image_results' not in st.session_state:
+            st.session_state.image_results = []
+        st.session_state.text_results.append(text_result)  # Save the text results in session state
+        st.session_state.image_results.append(image_result)  # Save the image results in session state
+        st.write(text_result)  # Show the text result immediately
+        st.image(base64_to_image(image_result))  # Show the image immediately
+        
 
 if st.button("Generate Campaign"):
     if all([product, campaign_category, campaign_type, tone, content_type, instructions, age_range, gender, income, region, urban_or_rural, channel, platform]):
-        if input_type=="Text":
-            result=text_generator(product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)
-            st.write(result[1])
-            st.write(result[0])
-            st.write(result[2])
-            now = datetime.now()
-            conn = sqlite3.connect("Output.db")
-            cursor = conn.cursor()
-            cursor.execute("""
-                INSERT INTO Text_output (
-                date, time, product, content_type, campaign_type, tone,
-                campaign_category, instructions, category, gender, age_range,
-                income, region, urban_or_rural, channel, platform, sku,
-                language, input_type, text_result_1, text_result_2, text_result_3
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (
-                str(now.date()), str(now.time()),
-                product, content_type, campaign_type, tone, campaign_category,
-                instructions, category, str(gender), str(age_range), income, region,
-                urban_or_rural, channel, platform, sku, language, input_type,
-                result[0], result[1], result[2]
-            ))
-            conn.commit()
-
-        if input_type=="Image":
-            if uploaded_image:
-                result=image_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)    
-                st.image(base64_to_image(result[1]))
-                st.image(base64_to_image(result[0]))
-                st.image(base64_to_image(result[2]))
+        if input_type == "Text":
+            with st.spinner("Generating your text..."):
+                real_time_text_generator(product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language)
                 now = datetime.now()
                 conn = sqlite3.connect("Output.db")
                 cursor = conn.cursor()
                 cursor.execute("""
-                    INSERT INTO image_output (
+                    INSERT INTO Text_output (
                     date, time, product, content_type, campaign_type, tone,
                     campaign_category, instructions, category, gender, age_range,
                     income, region, urban_or_rural, channel, platform, sku,
-                    language, input_type,
-                    image_result_1, image_result_2, image_result_3
+                    language, input_type, text_result_1, text_result_2, text_result_3
                     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                    str(now.date()), str(now.time()),
-                        product, content_type, campaign_type, tone, campaign_category,
-                        instructions, category, str(gender), str(age_range), income, region,
-                        urban_or_rural, channel, platform, sku, language, input_type,
-                        base64.b64decode(result[0].data[0].b64_json),
-                        base64.b64decode(result[1].data[0].b64_json),
-                        base64.b64decode(result[2].data[0].b64_json)
-                    ))
-                conn.commit()
-                
-        if input_type=="Image and Text":
-            if uploaded_image:
-                result,image=image_text_generator(uploaded_image,product,content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku,language)       
-                st.write(result[0])
-                st.image(base64_to_image(image[0]))
-                
-                st.write(result[1])
-                st.image(base64_to_image(image[1]))
-                
-                st.write(result[2]) 
-                st.image(base64_to_image(image[2]))
-                conn = sqlite3.connect("Output.db")
-                cursor = conn.cursor()
-                now = datetime.now()
-                cursor.execute("""
-                    INSERT INTO image_and_text_output (
-                    date, time, product, content_type, campaign_type, tone, 
-                    campaign_category, instructions, category, gender, age_range, 
-                    income, region, urban_or_rural, channel, platform, sku, 
-                    language, input_type, 
-                    image_result_1, image_result_2, image_result_3,
-                    text_result_1, text_result_2, text_result_3
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                     """, (
                     str(now.date()), str(now.time()),
                     product, content_type, campaign_type, tone, campaign_category,
                     instructions, category, str(gender), str(age_range), income, region,
                     urban_or_rural, channel, platform, sku, language, input_type,
-                    base64.b64decode(image[0].data[0].b64_json),
-                    base64.b64decode(image[1].data[0].b64_json),
-                    base64.b64decode(image[2].data[0].b64_json),
-                    result[0], result[1], result[2]
-                    ))
+                    st.session_state.text_results[0], st.session_state.text_results[1], st.session_state.text_results[2]
+                ))
                 conn.commit()
-            
 
+        if input_type == "Image":
+            if uploaded_image:
+                with st.spinner("Generating your image..."):
+                    real_time_image_generator(uploaded_image, product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language)
+                    now = datetime.now()
+                    conn = sqlite3.connect("Output.db")
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO image_output (
+                        date, time, product, content_type, campaign_type, tone,
+                        campaign_category, instructions, category, gender, age_range,
+                        income, region, urban_or_rural, channel, platform, sku,
+                        language, input_type,
+                        image_result_1, image_result_2, image_result_3
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                        str(now.date()), str(now.time()),
+                        product, content_type, campaign_type, tone, campaign_category,
+                        instructions, category, str(gender), str(age_range), income, region,
+                        urban_or_rural, channel, platform, sku, language, input_type,
+                        base64.b64decode(st.session_state.image_results[0].data[0].b64_json),
+                        base64.b64decode(st.session_state.image_results[1].data[0].b64_json),
+                        base64.b64decode(st.session_state.image_results[2].data[0].b64_json)
+                    ))
+                    conn.commit()
+
+        if input_type == "Image and Text":
+            if uploaded_image:
+                with st.spinner("Generating image and text..."):
+                    real_time_image_text_generator(uploaded_image, product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language)
+                    now = datetime.now()
+                    conn = sqlite3.connect("Output.db")
+                    cursor = conn.cursor()
+                    cursor.execute("""
+                        INSERT INTO image_and_text_output (
+                        date, time, product, content_type, campaign_type, tone, 
+                        campaign_category, instructions, category, gender, age_range, 
+                        income, region, urban_or_rural, channel, platform, sku, 
+                        language, input_type, 
+                        image_result_1, image_result_2, image_result_3,
+                        text_result_1, text_result_2, text_result_3
+                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                        str(now.date()), str(now.time()),
+                        product, content_type, campaign_type, tone, campaign_category,
+                        instructions, category, str(gender), str(age_range), income, region,
+                        urban_or_rural, channel, platform, sku, language, input_type,
+                        base64.b64decode(st.session_state.image_results[0].data[0].b64_json),
+                        base64.b64decode(st.session_state.image_results[1].data[0].b64_json),
+                        base64.b64decode(st.session_state.image_results[2].data[0].b64_json),
+                        st.session_state.text_results[0], st.session_state.text_results[1], st.session_state.text_results[2]
+                    ))
+                    conn.commit()
             else:
                 st.warning("Please upload an image.")
-    else:    
+    else:
         st.warning("Please complete all inputs.")
