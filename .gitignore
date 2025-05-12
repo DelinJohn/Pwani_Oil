@@ -17,3 +17,6 @@ db.json
 demographics.json
 app.log
 new_product.json
+Output.db
+product_database.json
+retrieved_image.png

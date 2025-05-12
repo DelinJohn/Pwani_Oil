@@ -410,7 +410,7 @@ with st.sidebar:
             age_range = st.slider("Age Range", 15, 65, (20, 30))
             gender = st.multiselect("Gender", ["Female", "Male", "Non_binary", 'All Genders'])
             if ('All Genders' in gender) and len(gender)>1:
-                st.warning('Please Select either All Genders or combination of other options')
+                st.error('Please Select either All Genders or combination of other options')
                 st.stop()
             income = st.selectbox('Income Level',
                                ('Low (e.g, <$30k)',
@@ -438,7 +438,7 @@ with st.sidebar:
          if input_type!="Text":
             uploaded_image = st.file_uploader(f"Choose an image of type png of {product} , {category}", type=["png"])
             if not uploaded_image:
-                st.warning("Please upload an image.")      
+                st.error("Please upload an image.")      
     
 # Main Action
 with st.expander('Recommended Guidelines for Getting the Best Campaign Creative'):
@@ -514,8 +514,10 @@ def result_null_finder(result):
     return a   
 null_values= result_null_finder(result)
 if null_values:
-    st.warning(f"These aspects {null_values} of this {product} ,{category} is missing ")
-    st.write(f"This may impact the quality and personalization of your campaign assets. The output may not fully reflect your brand's tone and style.")
+    
+    st.warning(f"""These aspects {null_values} of this {product} ,{category} is missing 
+               **This may impact the quality and personalization of your campaign assets. The output may not fully reflect your brand's tone and style.**""")
+    
 instructions = st.text_input("Please provide your campaign brief here")
     
 
@@ -641,6 +643,6 @@ if st.button("Generate Campaign"):
                     ))
                     conn.commit()
             else:
-                st.warning("Please upload an image.")
+                st.error("Please upload an image.")
     else:
-        st.warning("Please complete all inputs.")
+        st.error("Please complete all inputs.")
