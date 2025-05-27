@@ -9,3 +9,4 @@ typing_extensions
 langchain_openai
 langchain_groq
 logging
+pymongo[svr]==4.13.0

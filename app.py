@@ -6,7 +6,7 @@ from typing import List
 import logging
 logging.basicConfig(filename="app.log",level=logging.INFO,  # Set the logging level
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-
+logging.disable()
 from typing_extensions import TypedDict
 from pydantic import Field
 from datetime import datetime
@@ -16,6 +16,7 @@ import streamlit as st
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain.chat_models import init_chat_model
 import os
+from pymongo import MongoClient
 
 
 # Load environment variables
@@ -28,6 +29,7 @@ try:
     model_provider = st.secrets.get("GPT_model_provider")
     model_name = st.secrets.get("GPT_model")
     perplexity_key = st.secrets.get("perp_api_key")
+    uri=st.secrets.get('uri')
 
     # Checking if any secret is None (not found in secrets)
     if None in [key, model_provider, model_name, perplexity_key]:
@@ -40,6 +42,8 @@ except ValueError as e:
 except Exception as e:
     st.error(f"An unexpected error occurred: {e}")
 
+mongo_client=MongoClient(uri)
+db=mongo_client['Pwani_llm_Output']
 
 
 @st.cache_resource(show_spinner=False)
@@ -567,81 +571,68 @@ def real_time_image_text_generator(uploaded_image, product, content_type, campai
 
 if st.button("Generate Campaign"):
     if all([product, campaign_category, campaign_type, tone, content_type, instructions, age_range, gender, income, region, urban_or_rural, channel, platform]):
+        now = datetime.now()
+        common_data = {
+            "date": str(now.date()),
+            "time": str(now.time()),
+            "product": product,
+            "content_type": content_type,
+            "campaign_type": campaign_type,
+            "tone": tone,
+            "campaign_category": campaign_category,
+            "instructions": instructions,
+            "category": category,
+            "gender": str(gender),
+            "age_range": str(age_range),
+            "income": income,
+            "region": region,
+            "urban_or_rural": urban_or_rural,
+            "channel": channel,
+            "platform": platform,
+            "sku": sku,
+            "language": language,
+            "input_type": input_type
+        }
+
         if input_type == "Text":
             with st.spinner("Generating your text..."):
                 real_time_text_generator(product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language)
-                now = datetime.now()
-                conn = sqlite3.connect("Output.db")
-                cursor = conn.cursor()
-                cursor.execute("""
-                    INSERT INTO Text_output (
-                    date, time, product, content_type, campaign_type, tone,
-                    campaign_category, instructions, category, gender, age_range,
-                    income, region, urban_or_rural, channel, platform, sku,
-                    language, input_type, text_result_1, text_result_2, text_result_3
-                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """, (
-                    str(now.date()), str(now.time()),
-                    product, content_type, campaign_type, tone, campaign_category,
-                    instructions, category, str(gender), str(age_range), income, region,
-                    urban_or_rural, channel, platform, sku, language, input_type,
-                    st.session_state.text_results[0], st.session_state.text_results[1], st.session_state.text_results[2]
-                ))
-                conn.commit()
+                text_data = {
+                    **common_data,
+                    "text_result_1": st.session_state.text_results[0],
+                    "text_result_2": st.session_state.text_results[1],
+                    "text_result_3": st.session_state.text_results[2]
+                }
+                db.Text_output.insert_one(text_data)
 
-        if input_type == "Image":
+        elif input_type == "Image":
             if uploaded_image:
                 with st.spinner("Generating your image..."):
                     real_time_image_generator(uploaded_image, product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language)
-                    now = datetime.now()
-                    conn = sqlite3.connect("Output.db")
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO image_output (
-                        date, time, product, content_type, campaign_type, tone,
-                        campaign_category, instructions, category, gender, age_range,
-                        income, region, urban_or_rural, channel, platform, sku,
-                        language, input_type,
-                        image_result_1, image_result_2, image_result_3
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                        str(now.date()), str(now.time()),
-                        product, content_type, campaign_type, tone, campaign_category,
-                        instructions, category, str(gender), str(age_range), income, region,
-                        urban_or_rural, channel, platform, sku, language, input_type,
-                        base64.b64decode(st.session_state.image_results[0].data[0].b64_json),
-                        base64.b64decode(st.session_state.image_results[1].data[0].b64_json),
-                        base64.b64decode(st.session_state.image_results[2].data[0].b64_json)
-                    ))
-                    conn.commit()
+                    image_data = {
+                        **common_data,
+                        "image_result_1": base64.b64decode(st.session_state.image_results[0].data[0].b64_json),
+                        "image_result_2": base64.b64decode(st.session_state.image_results[1].data[0].b64_json),
+                        "image_result_3": base64.b64decode(st.session_state.image_results[2].data[0].b64_json)
+                    }
+                    db.Image_output.insert_one(image_data)
+            else:
+                st.error("Please upload an image.")
 
-        if input_type == "Image and Text":
+        elif input_type == "Image and Text":
             if uploaded_image:
                 with st.spinner("Generating image and text..."):
                     real_time_image_text_generator(uploaded_image, product, content_type, campaign_type, tone, campaign_category, instructions, category, gender, age_range, income, region, urban_or_rural, channel, platform, sku, language)
-                    now = datetime.now()
-                    conn = sqlite3.connect("Output.db")
-                    cursor = conn.cursor()
-                    cursor.execute("""
-                        INSERT INTO image_and_text_output (
-                        date, time, product, content_type, campaign_type, tone, 
-                        campaign_category, instructions, category, gender, age_range, 
-                        income, region, urban_or_rural, channel, platform, sku, 
-                        language, input_type, 
-                        image_result_1, image_result_2, image_result_3,
-                        text_result_1, text_result_2, text_result_3
-                        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                        """, (
-                        str(now.date()), str(now.time()),
-                        product, content_type, campaign_type, tone, campaign_category,
-                        instructions, category, str(gender), str(age_range), income, region,
-                        urban_or_rural, channel, platform, sku, language, input_type,
-                        base64.b64decode(st.session_state.image_results[0].data[0].b64_json),
-                        base64.b64decode(st.session_state.image_results[1].data[0].b64_json),
-                        base64.b64decode(st.session_state.image_results[2].data[0].b64_json),
-                        st.session_state.text_results[0], st.session_state.text_results[1], st.session_state.text_results[2]
-                    ))
-                    conn.commit()
+                    combined_data = {
+                        **common_data,
+                        "image_result_1": base64.b64decode(st.session_state.image_results[0].data[0].b64_json),
+                        "image_result_2": base64.b64decode(st.session_state.image_results[1].data[0].b64_json),
+                        "image_result_3": base64.b64decode(st.session_state.image_results[2].data[0].b64_json),
+                        "text_result_1": st.session_state.text_results[0],
+                        "text_result_2": st.session_state.text_results[1],
+                        "text_result_3": st.session_state.text_results[2]
+                    }
+                    db.Image_and_Text_output.insert_one(combined_data)
             else:
                 st.error("Please upload an image.")
     else:
