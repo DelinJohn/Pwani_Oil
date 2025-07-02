@@ -32,7 +32,7 @@ try:
     uri=st.secrets.get('uri')
 
     # Checking if any secret is None (not found in secrets)
-    if None in [key, model_provider, model_name, perplexity_key]:
+    if None in [key, model_provider, model_name]:
         raise ValueError("One or more secrets are missing or not set properly.")
 
 except KeyError as e:
