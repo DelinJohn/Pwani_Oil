@@ -28,7 +28,7 @@ try:
     key = st.secrets.get("OPENAI_API_KEY")
     model_provider = st.secrets.get("GPT_model_provider")
     model_name = st.secrets.get("GPT_model")
-    perplexity_key = st.secrets.get("perp_api_key")
+    
     uri=st.secrets.get('uri')
 
     # Checking if any secret is None (not found in secrets)
